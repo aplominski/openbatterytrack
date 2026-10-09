@@ -23,7 +23,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Build debug APK
-        run: ./gradlew :androidApp:assembleDebug
+        run: ./gradlew :androidApp:assembleDebug -PbuildNumber=${{ github.run_number }}
 
       - name: Release APK
         uses: softprops/action-gh-release@v2

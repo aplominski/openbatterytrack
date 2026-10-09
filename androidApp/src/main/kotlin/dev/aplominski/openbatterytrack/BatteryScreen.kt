@@ -2,6 +2,7 @@ package dev.aplominski.openbatterytrack
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -34,13 +38,18 @@ private val Red = Color(0xFFEF4444)
 private val Divider = Color(0xFF24282E)
 
 @Composable
-fun BatteryScreen(state: BatteryUiState) {
+fun BatteryScreen(
+    state: BatteryUiState,
+    hasUpdate: Boolean = false,
+    updateUrl: String? = null
+) {
     val dotColor = if (state.isCharging) Green else Secondary
     val statusLine = if (state.sourceText == "—") {
         "${state.statusText} · ${state.pluggedText} · ${state.levelPercent}%"
     } else {
         "${state.statusText} · ${state.sourceText} · ${state.levelPercent}%"
     }
+    val uriHandler = LocalUriHandler.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -48,7 +57,30 @@ fun BatteryScreen(state: BatteryUiState) {
             .safeContentPadding()
             .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            IconButton(onClick = {
+                uriHandler.openUri("https://github.com/aplominski/openbatterytrack/issues/new")
+            }) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_report),
+                    contentDescription = "Report issue",
+                    tint = Color.Unspecified
+                )
+            }
+            if (hasUpdate && updateUrl != null) {
+                IconButton(onClick = { uriHandler.openUri(updateUrl) }) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_update),
+                        contentDescription = "Download new version",
+                        tint = Color.Unspecified
+                    )
+                }
+            }
+        }
         Text(
             text = "HEALTH",
             fontFamily = InterFamily,

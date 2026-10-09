@@ -17,7 +17,9 @@ class MainActivity : ComponentActivity() {
             OpenBatteryTrackerTheme {
                 val vm: BatteryViewModel = viewModel()
                 val state by vm.state.collectAsState()
-                BatteryScreen(state = state)
+                val hasUpdate by vm.hasUpdate.collectAsState()
+                val updateUrl by vm.updateUrl.collectAsState()
+                BatteryScreen(state = state, hasUpdate = hasUpdate, updateUrl = updateUrl)
             }
         }
     }
