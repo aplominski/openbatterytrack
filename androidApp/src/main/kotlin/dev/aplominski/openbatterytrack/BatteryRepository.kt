@@ -81,11 +81,7 @@ class BatteryRepository(private val context: Context) {
         val capacityPercent = try {
             batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
         } catch (_: Exception) { Int.MIN_VALUE }
-        val capacityText = if (chargeCounterUah != Int.MIN_VALUE && chargeCounterUah > 0) {
-            "${chargeCounterUah / 1000} / — mAh"
-        } else if (capacityPercent != Int.MIN_VALUE) {
-            "— / $capacityPercent%"
-        } else "—"
+        val capacityText = formatCapacity(chargeCounterUah)
 
         val cyclesText = readCycleCount(intent)
 
@@ -106,6 +102,42 @@ class BatteryRepository(private val context: Context) {
             technologyText = technologyText,
             statusText = statusText
         )
+    }
+
+    private fun formatCapacity(chargeCounterUah: Int): String {
+        val remainingMah = if (chargeCounterUah != Int.MIN_VALUE && chargeCounterUah > 0)
+            chargeCounterUah / 1000 else null
+        val fullMah = readFullCapacityMah()
+        return when {
+            remainingMah != null && fullMah != null -> "$remainingMah / $fullMah mAh"
+            remainingMah != null -> "$remainingMah / — mAh"
+            fullMah != null -> "— / $fullMah mAh"
+            else -> "—"
+        }
+    }
+
+    private fun readFullCapacityMah(): Int? {
+        readSysfsUah("charge_full")?.let { return it / 1000 }
+        readSysfsUah("charge_full_design")?.let { return it / 1000 }
+        return try {
+            val clazz = Class.forName("com.android.internal.os.PowerProfile")
+            val pp = clazz.getConstructor(Context::class.java).newInstance(context)
+            (clazz.getMethod("getBatteryCapacity").invoke(pp) as Double).toInt()
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun readSysfsUah(name: String): Int? {
+        for (supply in listOf("battery", "bms", "main")) {
+            try {
+                val f = java.io.File("/sys/class/power_supply/$supply/$name")
+                if (!f.exists() || !f.canRead()) continue
+                val n = f.readText().trim().toIntOrNull()
+                if (n != null && n > 0) return n
+            } catch (_: Exception) { /* next */ }
+        }
+        return null
     }
 
     private fun readCycleCount(intent: Intent?): String {
