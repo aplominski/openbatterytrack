@@ -142,25 +142,34 @@ class BatteryRepository(private val context: Context) {
 
     private fun readCycleCount(intent: Intent?): String {
         val fromIntent = intent?.getIntExtra("android.os.extra.CYCLE_COUNT", -1) ?: -1
-        if (fromIntent >= 0) return fromIntent.toString()
-        val names = listOf("cycle_count", "cyclecount", "battery_cycle_count", "charge_cycle_count", "cycle")
-        try {
-            val supplies = java.io.File("/sys/class/power_supply").listFiles()?.map { it.name } ?: emptyList()
-            for (supply in supplies) {
-                for (name in names) {
+        if (fromIntent > 0) return fromIntent.toString()
+        readSysfsCycle()?.let { return it }
+        return "Unknown"
+    }
+
+    private fun readSysfsCycle(): String? {
+        val names = listOf(
+            "cycle_count", "cyclecount", "battery_cycle", "battery_cycle_count",
+            "charge_cycle_count", "fg_cycle_count", "cycle"
+        )
+        val listed = try {
+            java.io.File("/sys/class/power_supply").listFiles()?.map { it.name }
+                ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+        for (supply in listed + listOf("battery", "bms", "main")) {
+            for (name in names) {
+                try {
                     val f = java.io.File("/sys/class/power_supply/$supply/$name")
-                    try {
-                        if (!f.exists() || !f.canRead()) continue
-                        val raw = f.readText().trim()
-                        val n = raw.toIntOrNull()
-                        if (n != null && n >= 0) return n.toString()
-                    } catch (_: Exception) {
-                    }
+                    if (!f.exists() || !f.canRead()) continue
+                    val n = f.readText().trim().toIntOrNull()
+                    if (n != null && n > 0) return n.toString()
+                } catch (_: Exception) {
                 }
             }
-        } catch (_: Exception) {
         }
-        return "Unknown"
+        return null
     }
 
     companion object {
